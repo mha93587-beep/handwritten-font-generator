@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 # Initialize Bot
 bot = telebot.TeleBot(config.TELEGRAM_BOT_TOKEN, parse_mode="HTML")
 
+# User custom font names cache {chat_id: font_name}
+user_font_names = {}
+
 def get_main_keyboard(chat_id=None):
     """Create the clean interactive main menu inline keyboard."""
     markup = types.InlineKeyboardMarkup(row_width=2)
