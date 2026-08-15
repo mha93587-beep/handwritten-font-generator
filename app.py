@@ -155,7 +155,7 @@ with tab_create:
         # Clean font name
         font_family_name = "".join(c for c in font_family_name if c.isalnum() or c in (" ", "_", "-")).strip()
 
-        use_sample = st.checkbox("Or test with provided sample image (`IMG_20260814_185829.jpg`)", value=False)
+        use_sample = st.checkbox("Or test with official 12-row sample sheet (`Picsart_26-08-15_06-22-04-501.jpg`)", value=False)
 
         generate_btn = st.button("🚀 Vectorize & Generate TTF Font", type="primary", use_container_width=True)
 
@@ -165,11 +165,13 @@ with tab_create:
         with col_preview:
             st.image(img_to_process, caption="Uploaded Handwriting Sheet", use_container_width=True)
     elif use_sample:
-        sample_path = config.ASSETS_DIR / "IMG_20260814_185829.jpg"
+        sample_path = config.STATIC_DIR / "official_sample_sheet.jpg"
+        if not sample_path.exists():
+            sample_path = config.ASSETS_DIR / "Picsart_26-08-15_06-22-04-501.jpg"
         if sample_path.exists():
             img_to_process = Image.open(sample_path)
             with col_preview:
-                st.image(img_to_process, caption="Sample Reference Sheet", use_container_width=True)
+                st.image(img_to_process, caption="Official 12-Row Sample Sheet", use_container_width=True)
 
     if generate_btn and img_to_process:
         start_time = time.time()
@@ -299,12 +301,17 @@ with tab_guide:
 with tab_stats:
     st.markdown("### 📊 Database & Font Generations Log")
     recent_logs = database.get_recent_generations(limit=25)
-    
+
     if recent_logs:
+        col_headers = ["ID", "Chat ID", "Username", "Font Name", "Glyphs", "Time (sec)", "Status", "Timestamp"]
+        if isinstance(recent_logs[0], (list, tuple)):
+            table_data = [dict(zip(col_headers, row)) for row in recent_logs]
+        else:
+            table_data = recent_logs
         st.dataframe(
-            recent_logs,
-            column_names=["ID", "Chat ID", "Username", "Font Name", "Glyphs", "Time (sec)", "Status", "Timestamp"],
-            use_container_width=True
+            table_data,
+            use_container_width=True,
+            hide_index=True
         )
     else:
         st.info("No font generation logs found in database yet.")
