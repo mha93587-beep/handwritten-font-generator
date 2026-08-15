@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 
 const URLS = [
-"https://imagetotextocrbot.streamlit.app/"
+"https://handwritten-font-generator-d8hjpmaoz9uc4x3iqdbhu8.streamlit.app/"
 ];
 
 (async () => {
