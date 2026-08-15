@@ -216,11 +216,63 @@ def handle_broadcast(message: types.Message):
         except Exception:
             failed_count += 1
 
-    bot.edit_message_text(
-        f"✅ ब्रॉडकास्ट पूरा हुआ!\n• सफलतापूर्वक भेजा गया: {sent_count}\n• विफल: {failed_count}",
-        chat_id,
-        status_msg.message_id
-    )
+def parse_target_chat_id(target):
+    """Helper to convert string/int channel IDs cleanly."""
+    if not target:
+        return None
+    target_str = str(target).strip()
+    if (target_str.startswith("-") and target_str[1:].isdigit()) or target_str.isdigit():
+        try:
+            return int(target_str)
+        except ValueError:
+            pass
+    return target_str
+
+@bot.message_handler(commands=['channel'])
+def handle_channel_command(message: types.Message):
+    """Admin command to test or verify channel connection."""
+    chat_id = message.chat.id
+    if not config.is_admin(chat_id):
+        bot.send_message(chat_id, "⛔ आप इस कमांड के लिए अधिकृत नहीं हैं।")
+        return
+
+    raw_cid = config.TELEGRAM_CHANNEL_CHAT_ID
+    if not raw_cid:
+        bot.send_message(
+            chat_id,
+            "⚠️ <b>Channel ID Not Set!</b>\n\nचैनल का सही ID पता करने के लिए अपने चैनल से कोई भी मैसेज यहाँ फॉरवर्ड (Forward) करें!"
+        )
+        return
+
+    target_id = parse_target_chat_id(raw_cid)
+    try:
+        test_msg = bot.send_message(
+            target_id,
+            "🔔 <b>LipiLab Font Storage Channel Test Connection</b>\n✅ चैनल कनेक्शन सफलतापूर्वक स्थापित हो गया है।"
+        )
+        bot.send_message(
+            chat_id,
+            f"✅ <b>चैनल कनेक्टेड है!</b>\n• Channel ID: <code>{target_id}</code>\n• Test Message ID: <code>{test_msg.message_id}</code>"
+        )
+    except Exception as e:
+        bot.send_message(
+            chat_id,
+            f"❌ <b>चैनल में मैसेज नहीं जा सका:</b>\n<code>{str(e)}</code>\n\n💡 <b>समाधान:</b>\n1. सुनिश्चित करें कि बोट <b>@{bot.get_me().username}</b> चैनल में <b>Admin</b> के रूप में जुड़ा है।\n2. चैनल से कोई भी मैसेज इस चैट में <b>Forward</b> करें ताकि सही ID मिल सके।"
+        )
+
+@bot.message_handler(func=lambda msg: msg.forward_from_chat is not None or getattr(msg, 'forward_origin', None) is not None)
+def handle_forwarded_message(message: types.Message):
+    """Auto-detect channel ID when user forwards a message from the channel."""
+    chat_id = message.chat.id
+    f_chat = message.forward_from_chat
+    if not f_chat and hasattr(message, 'forward_origin') and getattr(message.forward_origin, 'chat', None):
+        f_chat = message.forward_origin.chat
+
+    if f_chat:
+        bot.send_message(
+            chat_id,
+            f"📢 <b>चैनल डिटेक्ट हुआ!</b>\n\n• <b>Title:</b> {f_chat.title}\n• <b>Type:</b> {f_chat.type}\n• <b>Exact Channel ID:</b> <code>{f_chat.id}</code>\n\n👉 इस ID को अपने <code>.env</code> या Streamlit Secrets में <code>TELEGRAM_CHANNEL_CHAT_ID={f_chat.id}</code> सेट करें!"
+        )
 
 def send_writing_guide(chat_id: int):
     """Send the clean visual writing guide instantly."""
@@ -382,6 +434,7 @@ def handle_photo_upload(message: types.Message):
 
         # 2. Forward to Storage Telegram Channel (if configured)
         if config.TELEGRAM_CHANNEL_CHAT_ID:
+            target_chan_id = parse_target_chat_id(config.TELEGRAM_CHANNEL_CHAT_ID)
             try:
                 channel_caption = f"""🎨 <b>New Handwritten Font Created</b>
 
@@ -390,11 +443,11 @@ def handle_photo_upload(message: types.Message):
 📊 <b>Glyphs:</b> <code>{len(char_map)}</code>
 ⚡ <b>Speed:</b> <code>{elapsed_time}s</code>"""
                 with open(output_preview_path, "rb") as prev_f:
-                    bot.send_photo(config.TELEGRAM_CHANNEL_CHAT_ID, prev_f, caption=channel_caption, parse_mode="HTML")
+                    bot.send_photo(target_chan_id, prev_f, caption=channel_caption, parse_mode="HTML")
                 with open(output_ttf_path, "rb") as doc_f:
-                    bot.send_document(config.TELEGRAM_CHANNEL_CHAT_ID, doc_f, caption=f"📦 {font_name}.ttf", parse_mode="HTML")
+                    bot.send_document(target_chan_id, doc_f, caption=f"📦 {font_name}.ttf", parse_mode="HTML")
             except Exception as ch_err:
-                logger.error(f"Failed to forward font to channel {config.TELEGRAM_CHANNEL_CHAT_ID}: {ch_err}")
+                logger.error(f"Failed to forward font to channel {target_chan_id}: {ch_err}")
 
         # Delete processing message
         try:
