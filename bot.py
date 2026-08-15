@@ -18,31 +18,28 @@ logger = logging.getLogger(__name__)
 # Initialize Bot
 bot = telebot.TeleBot(config.TELEGRAM_BOT_TOKEN, parse_mode="HTML")
 
-# User custom font names cache {chat_id: font_name}
-user_font_names = {}
-
 def get_main_keyboard(chat_id=None):
-    """Create the interactive main menu inline keyboard."""
+    """Create the clean interactive main menu inline keyboard."""
     markup = types.InlineKeyboardMarkup(row_width=2)
-    btn_guide = types.InlineKeyboardButton("📖 Writing Guide (लिखने का तरीका)", callback_data="btn_guide")
-    btn_sample = types.InlineKeyboardButton("🖼️ Sample Photo (उदाहरण)", callback_data="btn_sample")
-    btn_setname = types.InlineKeyboardButton("✏️ Set Font Name (नाम बदलें)", callback_data="btn_setname")
-    btn_stats = types.InlineKeyboardButton("📊 My Stats (मेरी स्टैट्स)", callback_data="btn_stats")
-    btn_install = types.InlineKeyboardButton("💡 How to Install (उपयोग विधि)", callback_data="btn_install")
+    btn_guide = types.InlineKeyboardButton("📖 12-Row Guide", callback_data="btn_guide")
+    btn_sample = types.InlineKeyboardButton("🖼️ Sample Photo", callback_data="btn_sample")
+    btn_setname = types.InlineKeyboardButton("✏️ Set Font Name", callback_data="btn_setname")
+    btn_stats = types.InlineKeyboardButton("📊 My Stats", callback_data="btn_stats")
+    btn_install = types.InlineKeyboardButton("💡 How to Install", callback_data="btn_install")
 
     markup.add(btn_guide, btn_sample)
     markup.add(btn_setname, btn_stats)
     markup.add(btn_install)
 
     if chat_id and config.is_admin(chat_id):
-        btn_admin = types.InlineKeyboardButton("⚡ Admin Panel (मालिक कंट्रोल)", callback_data="btn_admin")
+        btn_admin = types.InlineKeyboardButton("👑 Admin Panel", callback_data="btn_admin")
         markup.add(btn_admin)
 
     return markup
 
 @bot.message_handler(commands=['start', 'help'])
 def handle_start(message: types.Message):
-    """Handle /start and /help commands."""
+    """Handle /start and /help commands with sample image and clean UI."""
     chat_id = message.chat.id
     first_name = message.from_user.first_name or "User"
     username = message.from_user.username or ""
@@ -52,24 +49,39 @@ def handle_start(message: types.Message):
     database.upsert_user(chat_id, username, first_name, last_name)
 
     is_owner = config.is_admin(chat_id)
-    owner_badge = "\n👑 <b>Admin / Owner Mode Active</b>" if is_owner else ""
+    owner_tag = " • 👑 <b>Admin</b>" if is_owner else ""
 
-    welcome_text = f"""
-👋 <b>नमस्ते {first_name}! Handwritten Font Generator Bot में आपका स्वागत है! ✍️</b>{owner_badge}
+    welcome_caption = f"""✍️ <b>Handwritten Font Generator</b>{owner_tag}
 
-यह बोट आपके हाथों से लिखे गए अक्षरों को एक <b>असली TrueType Font (.ttf)</b> फाइल में बदल देगा!
+नमस्ते <b>{first_name}</b>! अपने हाथ की लिखावट को असली <b>.ttf फॉन्ट</b> में बदलें।
 
-🚀 <b>कैसे इस्तेमाल करें:</b>
-1️⃣ एक सादा सफेद कागज (Plain White Paper) लें।
-2️⃣ काले या नीले पेन से हमारे 12-Row गाइड के अनुसार सभी अक्षर लिखें।
-3️⃣ उस कागज की सीधी, साफ फ़ोटो खींचकर यहाँ भेजें।
-4️⃣ बोट तुरंत आपका <b>.ttf फॉन्ट</b> बनाकर आपको भेज देगा!
+📝 <b>बनाने का तरीका:</b>
+1️⃣ ऊपर दिए गए फोटो की तरह सादे कागज पर 12 लाइनों में लिखें।
+2️⃣ कागज की सीधी (Top-Down) फोटो यहाँ भेजें।
+3️⃣ बोट तुरंत आपका <b>.ttf फ़ॉन्ट</b> बनाकर भेज देगा!
 
-<i>✨ किसी प्रिंटर या स्पेशल फॉर्म की कोई जरूरत नहीं है!</i>
+<i>✨ किसी प्रिंटर की कोई जरूरत नहीं है!</i>"""
 
-नीचे दिए गए बटनों से गाइड देखें या सीधे फोटो अपलोड करें:
-"""
-    bot.send_message(chat_id, welcome_text, reply_markup=get_main_keyboard(chat_id))
+    sample_path = config.STATIC_DIR / "official_sample_sheet.jpg"
+    if not sample_path.exists():
+        sample_path = config.ASSETS_DIR / "Picsart_26-08-15_06-22-04-501.jpg"
+
+    if sample_path.exists():
+        with open(sample_path, "rb") as f:
+            bot.send_photo(
+                chat_id,
+                f,
+                caption=welcome_caption,
+                reply_markup=get_main_keyboard(chat_id),
+                parse_mode="HTML"
+            )
+    else:
+        bot.send_message(
+            chat_id,
+            welcome_caption,
+            reply_markup=get_main_keyboard(chat_id),
+            parse_mode="HTML"
+        )
 
 @bot.message_handler(commands=['guide'])
 def handle_guide_command(message: types.Message):
@@ -192,24 +204,20 @@ def handle_broadcast(message: types.Message):
     )
 
 def send_writing_guide(chat_id: int):
-    """Send the generated writing guide image and instructions."""
+    """Send the clean visual writing guide."""
     guide_img_path = config.STATIC_DIR / "writing_guide.png"
     if not guide_img_path.exists():
         generate_guide_image(str(guide_img_path))
 
-    caption = """
-📖 <b>कागज पर लिखने का नया 12-Row फॉर्मेट (Writing Guide):</b>
+    caption = """📖 <b>12-Row Writing Guide</b>
 
-1. एक साफ <b>सादा सफेद कागज (Plain White Paper)</b> लें।
-2. डार्क काले या नीले पेन से अक्षर लिखें।
-3. नीचे दी गई <b>12 पंक्तियों (Rows)</b> के सही क्रम में लिखें:
-   • <b>पंक्ति 1-4:</b> बड़े अक्षर (A, B, C, D... Z)
-   • <b>पंक्ति 5-8:</b> छोटे अक्षर (a, b, c, d... z)
-   • <b>पंक्ति 9:</b> अंक (1 2 3 4 5 6 7 8 9 0)
-   • <b>पंक्ति 10-12:</b> सिम्बल्स (. , ; : ! ? " ' - + = / % & ( ) [ ])
-4. अक्षरों के बीच थोड़ा स्पेस रखें ताकि वे आपस में न जुड़ें।
-5. अच्छी रोशनी में ऊपर से सीधी (Top-Down) फोटो खींचकर भेजें! 📸
-"""
+1. साफ <b>सादा सफेद कागज</b> लें (बिना लाइन वाला)।
+2. गहरे काले या नीले पेन से 12 लाइनों में लिखें:
+   • <b>1-4:</b> बड़े अक्षर (A - Z)
+   • <b>5-8:</b> छोटे अक्षर (a - z)
+   • <b>9:</b> अंक (1 2 3 4 5 6 7 8 9 0)
+   • <b>10-12:</b> सिम्बल्स (. , ; : ! ? " ' - + = / % & ( ) [ ])
+3. अक्षरों में हल्का गैप रखें और ऊपर से सीधी फोटो भेजें! 📸"""
     try:
         with open(guide_img_path, "rb") as photo:
             bot.send_photo(chat_id, photo, caption=caption, parse_mode="HTML")
@@ -218,7 +226,7 @@ def send_writing_guide(chat_id: int):
         bot.send_message(chat_id, caption, parse_mode="HTML")
 
 def send_sample_photo(chat_id: int):
-    """Send the real handwritten sample image as reference."""
+    """Send the real handwritten sample image as clean reference."""
     sample_path = config.STATIC_DIR / "official_sample_sheet.jpg"
     if not sample_path.exists():
         sample_path = config.ASSETS_DIR / "Picsart_26-08-15_06-22-04-501.jpg"
@@ -227,29 +235,18 @@ def send_sample_photo(chat_id: int):
             bot.send_photo(
                 chat_id,
                 f,
-                caption="📝 <b>यह देखिए रियल उदाहरण (Official 12-Row Sample Sheet):</b>\nआप भी इसी तरह सादे सफेद कागज पर 12 पंक्तियों में लिखकर फ़ोटो भेज सकते हैं!",
+                caption="📝 <b>हैंडराइटिंग सैंपल शीट</b>\nसादे सफेद कागज पर इसी तरह 12 लाइनों में लिखकर फ़ोटो भेजें!",
                 parse_mode="HTML"
             )
     else:
         bot.send_message(chat_id, "⚠️ सैंपल फ़ोटो उपलब्ध नहीं है। कृपया /guide देखें।")
 
 def send_install_instructions(chat_id: int):
-    """Send font installation guide."""
-    msg = """
-💡 <b>फॉन्ट (.ttf) का उपयोग और इनस्टॉल कैसे करें:</b>
+    """Send concise font installation guide."""
+    msg = """💡 <b>फ़ॉन्ट (.ttf) कैसे इस्तेमाल करें:</b>
 
-💻 <b>Windows PC में:</b>
-1. .ttf फाइल डाउनलोड करें।
-2. फाइल पर Right Click करें और <b>'Install'</b> पर क्लिक करें।
-3. MS Word, Photoshop, Premiere आदि में फॉन्ट चुनकर टाइप करें!
-
-🍎 <b>Mac OS में:</b>
-1. .ttf फाइल खोलें और <b>'Install Font'</b> पर क्लिक करें।
-
-📱 <b>Android / iPhone (Mobile) में:</b>
-• <b>Canva / Pixellab / InShot / CapCut:</b> Text टूल में जाकर 'Upload Font' चुनें और .ttf फाइल सेलेक्ट करें।
-• <b>zFont 3:</b> पूरे सिस्टम का फॉन्ट बदलने के लिए zFont ऐप का इस्तेमाल कर सकते हैं।
-"""
+💻 <b>Windows / Mac:</b> फ़ाइल खोलकर <b>Install</b> पर क्लिक करें।
+📱 <b>Canva / Pixellab / CapCut:</b> Text टूल में जाकर .ttf फ़ाइल अपलोड करें।"""
     bot.send_message(chat_id, msg)
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -372,7 +369,7 @@ def handle_photo_upload(message: types.Message):
             bot.send_photo(
                 chat_id,
                 preview_file,
-                caption=f"🎉 <b>बधाई हो! आपका फॉन्ट तैयार है!</b>\n\n📝 फॉन्ट का नाम: <b>{font_name}</b>\n🔤 कुल अक्षर: <b>{len(char_map)}</b>\n⚡ प्रोसेसिंग समय: <b>{elapsed_time}s</b>",
+                caption=f"🎉 <b>आपका फ़ॉन्ट तैयार है!</b>\n\n🔤 <b>Font:</b> <code>{font_name}</code>\n📊 <b>Glyphs:</b> <code>{len(char_map)}</code>\n⚡ <b>Speed:</b> <code>{elapsed_time}s</code>",
                 parse_mode="HTML"
             )
 
@@ -381,7 +378,7 @@ def handle_photo_upload(message: types.Message):
             bot.send_document(
                 chat_id,
                 ttf_file,
-                caption=f"📥 <b>{font_name}.ttf</b> फ़ाइल को डाउनलोड करके अपने PC या Mobile में इनस्टॉल करें!\n\n💡 इनस्टॉल करने की जानकारी के लिए /help या बटन दबाएं।",
+                caption=f"📥 <b>{font_name}.ttf</b> — इसे Canva, Photoshop, Windows या Android में इनस्टॉल करें!",
                 parse_mode="HTML"
             )
 
