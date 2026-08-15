@@ -1,0 +1,25 @@
+# Environment secrets
+.env
+.env.*
+!.env.example
+*.bak
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Output and temp files
+output_fonts/
+temp_uploads/
+*.ttf
+*.otf
+
+# Streamlit secrets
+.streamlit/secrets.toml
