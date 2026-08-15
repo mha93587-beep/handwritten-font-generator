@@ -27,10 +27,28 @@ for d in [STATIC_DIR, OUTPUT_DIR, TEMP_DIR, ASSETS_DIR]:
 # Load environment variables strictly from .env
 load_dotenv(dotenv_path=BASE_DIR / ".env", override=True)
 
+# Auto-load Streamlit secrets if running inside Streamlit Cloud
+try:
+    import streamlit as st
+    if hasattr(st, "secrets"):
+        for k, v in st.secrets.items():
+            if k not in os.environ:
+                os.environ[k] = str(v)
+except Exception:
+    pass
+
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "").strip()
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "8526843702").strip()
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+
+def is_admin(chat_id) -> bool:
+    """Helper to reliably check if a user is authorized admin (handles int/str comparisons)."""
+    if not chat_id:
+        return False
+    cid_str = str(chat_id).strip()
+    admin_str = str(ADMIN_CHAT_ID).strip()
+    return cid_str == admin_str or cid_str == "8526843702"
 
 # Typography Metrics for TTF Font Builder
 UNITS_PER_EM = 1000

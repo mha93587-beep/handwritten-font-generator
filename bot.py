@@ -21,7 +21,7 @@ bot = telebot.TeleBot(config.TELEGRAM_BOT_TOKEN, parse_mode="HTML")
 # User custom font names cache {chat_id: font_name}
 user_font_names = {}
 
-def get_main_keyboard():
+def get_main_keyboard(chat_id=None):
     """Create the interactive main menu inline keyboard."""
     markup = types.InlineKeyboardMarkup(row_width=2)
     btn_guide = types.InlineKeyboardButton("📖 Writing Guide (लिखने का तरीका)", callback_data="btn_guide")
@@ -29,11 +29,15 @@ def get_main_keyboard():
     btn_setname = types.InlineKeyboardButton("✏️ Set Font Name (नाम बदलें)", callback_data="btn_setname")
     btn_stats = types.InlineKeyboardButton("📊 My Stats (मेरी स्टैट्स)", callback_data="btn_stats")
     btn_install = types.InlineKeyboardButton("💡 How to Install (उपयोग विधि)", callback_data="btn_install")
-    btn_admin = types.InlineKeyboardButton("⚡ Admin Panel", callback_data="btn_admin")
-    
+
     markup.add(btn_guide, btn_sample)
     markup.add(btn_setname, btn_stats)
     markup.add(btn_install)
+
+    if chat_id and config.is_admin(chat_id):
+        btn_admin = types.InlineKeyboardButton("⚡ Admin Panel (मालिक कंट्रोल)", callback_data="btn_admin")
+        markup.add(btn_admin)
+
     return markup
 
 @bot.message_handler(commands=['start', 'help'])
@@ -47,14 +51,17 @@ def handle_start(message: types.Message):
     # Save/Update user in Neon DB
     database.upsert_user(chat_id, username, first_name, last_name)
 
+    is_owner = config.is_admin(chat_id)
+    owner_badge = "\n👑 <b>Admin / Owner Mode Active</b>" if is_owner else ""
+
     welcome_text = f"""
-👋 <b>नमस्ते {first_name}! Handwritten Font Generator Bot में आपका स्वागत है! ✍️</b>
+👋 <b>नमस्ते {first_name}! Handwritten Font Generator Bot में आपका स्वागत है! ✍️</b>{owner_badge}
 
 यह बोट आपके हाथों से लिखे गए अक्षरों को एक <b>असली TrueType Font (.ttf)</b> फाइल में बदल देगा!
 
 🚀 <b>कैसे इस्तेमाल करें:</b>
 1️⃣ एक सादा सफेद कागज (Plain White Paper) लें।
-2️⃣ काले या नीले पेन से हमारे गाइड के अनुसार सभी अक्षर लिखें।
+2️⃣ काले या नीले पेन से हमारे 12-Row गाइड के अनुसार सभी अक्षर लिखें।
 3️⃣ उस कागज की सीधी, साफ फ़ोटो खींचकर यहाँ भेजें।
 4️⃣ बोट तुरंत आपका <b>.ttf फॉन्ट</b> बनाकर आपको भेज देगा!
 
@@ -62,7 +69,7 @@ def handle_start(message: types.Message):
 
 नीचे दिए गए बटनों से गाइड देखें या सीधे फोटो अपलोड करें:
 """
-    bot.send_message(chat_id, welcome_text, reply_markup=get_main_keyboard())
+    bot.send_message(chat_id, welcome_text, reply_markup=get_main_keyboard(chat_id))
 
 @bot.message_handler(commands=['guide'])
 def handle_guide_command(message: types.Message):
@@ -112,31 +119,49 @@ def handle_setname(message: types.Message):
 def handle_admin_command(message: types.Message):
     """Admin dashboard command."""
     chat_id = message.chat.id
-    if config.ADMIN_CHAT_ID and chat_id != config.ADMIN_CHAT_ID:
+    if not config.is_admin(chat_id):
         bot.send_message(chat_id, "⛔ आप इस कमांड के लिए अधिकृत नहीं हैं।")
         return
 
     global_stats = database.get_global_stats()
     admin_msg = f"""
-⚡ <b>ADMIN DASHBOARD:</b>
+👑 <b>ADMIN & OWNER DASHBOARD:</b>
 
 👥 Total Users: <b>{global_stats['total_users']}</b>
 🎨 Fonts Created: <b>{global_stats['total_fonts']}</b>
-🔤 Total Glyphs Extracted: <b>{global_stats['total_glyphs']}</b>
-💾 Database Engine: <b>{global_stats['db_type']}</b>
+🔤 Total Glyphs Vectorized: <b>{global_stats['total_glyphs']}</b>
+💾 Database Engine: <b>{global_stats['db_type'].upper()}</b>
+🔑 Admin Chat ID: <code>{chat_id}</code>
 
-<b>Admin Commands:</b>
+<b>Available Admin Commands:</b>
 • <code>/broadcast &lt;message&gt;</code> - Send message to all users
-• <code>/users</code> - List recent user IDs
-• <code>/stats</code> - View system stats
+• <code>/users</code> - View recent registered users list
+• <code>/stats</code> - View global system stats
 """
     bot.send_message(chat_id, admin_msg)
+
+@bot.message_handler(commands=['users'])
+def handle_users_command(message: types.Message):
+    """Admin command to list users."""
+    chat_id = message.chat.id
+    if not config.is_admin(chat_id):
+        bot.send_message(chat_id, "⛔ आप इस कमांड के लिए अधिकृत नहीं हैं।")
+        return
+
+    user_ids = database.get_all_user_ids()
+    users_text = f"👥 <b>Total Registered Users: {len(user_ids)}</b>\n\n"
+    for idx, uid in enumerate(user_ids[:30], 1):
+        users_text += f"{idx}. <code>{uid}</code>\n"
+    if len(user_ids) > 30:
+        users_text += f"\n<i>...and {len(user_ids) - 30} more users.</i>"
+
+    bot.send_message(chat_id, users_text)
 
 @bot.message_handler(commands=['broadcast'])
 def handle_broadcast(message: types.Message):
     """Admin broadcast command."""
     chat_id = message.chat.id
-    if config.ADMIN_CHAT_ID and chat_id != config.ADMIN_CHAT_ID:
+    if not config.is_admin(chat_id):
         bot.send_message(chat_id, "⛔ आप इस कमांड के लिए अधिकृत नहीं हैं।")
         return
 
