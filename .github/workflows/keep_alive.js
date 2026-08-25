@@ -1,7 +1,12 @@
 const { chromium } = require('playwright');
 
 const URLS = [
-"https://handwritten-font-generator-d8hjpmaoz9uc4x3iqdbhu8.streamlit.app/"
+"https://anyexamhighqualityquestionpapergenerator-yj2r4rdusadg4bh9t4sj7.streamlit.app/",
+  "https://anyexamhighqualityquestionpapergenerator-u6mgkvncjjs4ezfb89qbd.streamlit.app/",
+  "https://anyexamhighqualityquestionpapergenerator-k4mumx5cfp7prk2eqt2ae.streamlit.app/",
+  "https://question-extract.streamlit.app/"
+  "https://imagetotextocrbot.streamlit.app/"
+  "https://handwritten-font-generator-d8hjpmaoz9uc4x3iqdbhu8.streamlit.app/"
 ];
 
 (async () => {
