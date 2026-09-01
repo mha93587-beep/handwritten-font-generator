@@ -6,7 +6,8 @@ const URLS = [
   "https://anyexamhighqualityquestionpapergenerator-k4mumx5cfp7prk2eqt2ae.streamlit.app/",
   "https://question-extract.streamlit.app/",
   "https://imagetotextocrbot.streamlit.app/",
-  "https://handwritten-font-generator-d8hjpmaoz9uc4x3iqdbhu8.streamlit.app/"
+  "https://handwritten-font-generator-d8hjpmaoz9uc4x3iqdbhu8.streamlit.app/",
+  "https://rrb-ntpc-all-pyq.streamlit.app/"
 ];
 
 (async () => {
