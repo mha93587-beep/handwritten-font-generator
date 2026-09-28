@@ -7,7 +7,8 @@ const URLS = [
   "https://question-extract.streamlit.app/",
   "https://imagetotextocrbot.streamlit.app/",
   "https://handwritten-font-generator-d8hjpmaoz9uc4x3iqdbhu8.streamlit.app/",
-  "https://rrb-ntpc-all-pyq.streamlit.app/"
+  "https://rrb-ntpc-all-pyq.streamlit.app/",
+  "https://job-vacancies-scraper-me7okzrjnq7dacuslunmzs.streamlit.app/"
 ];
 
 (async () => {
