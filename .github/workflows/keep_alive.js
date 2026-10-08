@@ -9,7 +9,8 @@ const URLS = [
   "https://handwritten-font-generator-d8hjpmaoz9uc4x3iqdbhu8.streamlit.app/",
   "https://rrb-ntpc-all-pyq.streamlit.app/",
   "https://job-vacancies-scraper-me7okzrjnq7dacuslunmzs.streamlit.app/",
-  "https://library-science.streamlit.app/"
+  "https://library-science.streamlit.app/",
+  "https://ai-model-tracker-bot-ka94vkjeapm6xqwyrsguf3.streamlit.app/"
 ];
 
 (async () => {
