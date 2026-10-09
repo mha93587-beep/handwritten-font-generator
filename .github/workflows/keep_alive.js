@@ -10,7 +10,8 @@ const URLS = [
   "https://rrb-ntpc-all-pyq.streamlit.app/",
   "https://job-vacancies-scraper-me7okzrjnq7dacuslunmzs.streamlit.app/",
   "https://library-science.streamlit.app/",
-  "https://ai-model-tracker-bot-ka94vkjeapm6xqwyrsguf3.streamlit.app/"
+  "https://ai-model-tracker-bot-ka94vkjeapm6xqwyrsguf3.streamlit.app/",
+  "https://aryaca.streamlit.app/"
 ];
 
 (async () => {
